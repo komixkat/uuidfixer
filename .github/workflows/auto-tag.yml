@@ -1,0 +1,49 @@
+name: auto-tag release
+
+# Runs after any push to main. If minecraft_version in gradle.properties
+# changed and no tag for it exists yet, creates and pushes that tag - which
+# triggers release.yml to build and publish it.
+#
+# This is intentionally the only automated step that touches tags. Merging
+# the bot's version-bump PR is still a manual decision, and stays that way
+# on purpose: it's the point where a human confirms the bump is safe.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gradle.properties'
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: check if a release is needed
+        id: check
+        run: |
+          mc_version=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)
+          tag="v${mc_version}"
+
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists, nothing to do."
+            echo "should_tag=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Will create tag $tag"
+            echo "should_tag=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: create and push tag
+        if: steps.check.outputs.should_tag == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.check.outputs.tag }}
+          git push origin ${{ steps.check.outputs.tag }}

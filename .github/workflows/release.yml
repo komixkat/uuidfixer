@@ -1,0 +1,42 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ vars.JAVA_VERSION || '25' }}
+          distribution: 'microsoft'
+
+      - name: extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: build
+        run: |
+          chmod +x gradlew
+          ./gradlew build -Pmod_version=${{ steps.version.outputs.version }}
+
+      - name: collect release artifact
+        run: |
+          mkdir -p release-artifacts
+          cp build/libs/*.jar release-artifacts/
+          rm -f release-artifacts/*-sources.jar
+
+      - name: create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: release-artifacts/*.jar

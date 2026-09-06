@@ -10,6 +10,7 @@
     "issues": "https://github.com/komixkat/uuidfixer/issues"
   },
   "license": "MIT",
+  "icon": "uuidfixer.jpg",
   "environment": "server",
   "entrypoints": {
     "main": ["dev.komixkat.uuidfixer.UuidFixerMod"]

@@ -76,3 +76,6 @@ sed -i \
 	echo "new_loader_version=$latest_loader"
 	echo "new_fabric_api_version=$latest_fabric_api"
 } >> "$GITHUB_OUTPUT"
+
+# Update fabric.mod.json as well
+./scripts/update-fabric-json.sh

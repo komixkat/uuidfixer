@@ -14,10 +14,10 @@ Latest build: https://github.com/komixkat/uuidfixer/releases/latest
 
 This mod supports the following Minecraft versions:
 
-| Minecraft Version | Release Date |
-|-------------------|--------------|
-| 26.2 | 2026-07-21 |
-| 26.3 | 2026-09-16 |
+| Minecraft Version | Release |
+|-------------------|---------|
+| 26.2 | [26.2](https://github.com/komixkat/uuidfixer/releases/tag/v26.2) |
+| 26.3 | [26.3](https://github.com/komixkat/uuidfixer/releases/tag/v26.3) |
 
 ## How it works
 

@@ -5,12 +5,12 @@ set -euo pipefail
 
 NEW_VERSION="$1"
 README="README.md"
+REPO_URL="https://github.com/komixkat/uuidfixer/releases/tag/v"
 
 # Create Supported Versions section if it doesn't exist
 if ! grep -q "## Supported Versions" "$README"; then
     # Find a good place to insert it (after "## Download" section)
-    # We'll insert after the "## Download" section
-    sed -i '/^## Download$/,/^##/ { /^## [^D]/i ## Supported Versions\n\nThis mod supports the following Minecraft versions:\n\n| Minecraft Version | Release Date |\n|-------------------|--------------|\n}' "$README"
+    sed -i '/^## Download$/,/^##/ { /^## [^D]/i ## Supported Versions\n\nThis mod supports the following Minecraft versions:\n\n| Minecraft Version | Release |\n|-------------------|---------|\n}' "$README"
 fi
 
 # Check if version already exists in table
@@ -19,10 +19,10 @@ if grep -q "| $NEW_VERSION |" "$README"; then
     exit 0
 fi
 
-# Get current date for release date
-RELEASE_DATE=$(date '+%Y-%m-%d')
+# Create link to the release
+RELEASE_LINK="[$NEW_VERSION]($REPO_URL$NEW_VERSION)"
 
 # Add new version to the table (insert after header)
-sed -i "/^| Minecraft Version | Release Date |$/a | $NEW_VERSION | $RELEASE_DATE |" "$README"
+sed -i "/^| Minecraft Version | Release |$/a | $NEW_VERSION | $RELEASE_LINK |" "$README"
 
 echo "Added $NEW_VERSION to README"

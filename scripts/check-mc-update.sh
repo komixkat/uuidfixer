@@ -67,6 +67,7 @@ sed -i \
 	-e "s/^minecraft_version=.*/minecraft_version=${target_mc}/" \
 	-e "s/^loader_version=.*/loader_version=${latest_loader}/" \
 	-e "s/^fabric_api_version=.*/fabric_api_version=${latest_fabric_api}/" \
+	-e "s/^mod_version=.*/mod_version=${target_mc}/" \
 	"$PROPS_FILE"
 
 {

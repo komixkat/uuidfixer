@@ -10,6 +10,15 @@ Server-side only.
 
 Latest build: https://github.com/komixkat/uuidfixer/releases/latest
 
+## Supported Versions
+
+This mod supports the following Minecraft versions:
+
+| Minecraft Version | Release Date |
+|-------------------|--------------|
+| 26.2 | 2026-07-21 |
+| 26.3 | 2026-09-16 |
+
 ## How it works
 
 - `UUIDUtilMixin` intercepts `UUIDUtil.createOfflinePlayerUUID` and
@@ -43,8 +52,12 @@ points at the newest tag.
 ## Updating for a new Minecraft version
 
 `gradle.properties` holds every version pin. `check-mc-update.yml` runs
-daily and opens a pull request when Minecraft, Fabric Loader, or Fabric API
-have a new stable release.
+daily and automatically updates to new stable releases of Minecraft, Fabric
+Loader, and Fabric API. When the build succeeds, it:
+1. Updates `gradle.properties` with new versions
+2. Updates `README.md` with the new version in the Supported Versions table
+3. Commits changes, creates a `v<version>` tag, and pushes both to main
+4. The tag triggers `release.yml` to build and publish a GitHub Release
 
 `loom_version` and the Gradle wrapper version (in
 `gradle/wrapper/gradle-wrapper.properties`) are not auto-updated. Loom's
@@ -57,6 +70,8 @@ without an actual build, so bump these by hand:
 3. Update the Gradle version in `gradle/wrapper/gradle-wrapper.properties`
    to whatever that Loom release requires (check its release notes).
 4. Run `./gradlew build` locally and fix anything that breaks before pushing.
+
+If the automated build fails, the workflow opens a pull request for manual review.
 
 ## License
 

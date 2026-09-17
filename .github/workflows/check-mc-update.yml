@@ -70,6 +70,8 @@ jobs:
 
       - name: trigger release workflow
         if: steps.check.outputs.updated == 'true' && steps.build.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run release.yml -f version=${{ steps.check.outputs.new_mc_version }} --ref main
 

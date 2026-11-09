@@ -1,78 +1,59 @@
-# UUID Fixer
+# UUID Fixer — Fork (Persistent Cache Fix)
 
-Assigns Mojang UUIDs to players joining an offline-mode server, allowing
-in-game entities and other services (mods like Essential) to use the actual
-UUID instead of a hash of the player's username.
+A non-official fork of [komixkat/uuidfixer](https://github.com/komixkat/uuidfixer) for Minecraft 26.3 (Fabric).
 
-Server-side only.
+**Latest release:** [v2.0.1 - 26.3](https://github.com/OhAleeh/uuidfixer/releases/latest) (`uuidfixer-2.0.1-26.3.jar`)
 
-## Download
+## What this fork fixes
 
-Latest build: https://github.com/komixkat/uuidfixer/releases/latest
+The original mod could replace a previously verified Mojang UUID with an offline UUID when the Mojang API timed out or returned a transient error. This caused duplicate player `.dat` files and apparently empty inventories.
 
-## Supported Versions
+This fork changes the caching strategy so that:
 
-This mod supports the following Minecraft versions:
+- A verified Mojang UUID is **never expired** and is reused even when the API is unreachable.
+- Temporary failures (timeout, HTTP 5xx/429, network errors) **do not overwrite** the cached UUID and are not cached as negative results.
+- Valid `404`/`204` responses are distinguished from temporary errors. If a verified UUID already exists, it is preserved even on `404`/`204`.
+- UUID resolution is serialized per username, so simultaneous logins of the same player always use the same canonical identity.
+- Clear log lines distinguish cache hits, timeouts, negative API responses, and successful resolutions.
 
-| Minecraft Version | Release |
-|-------------------|---------|
-| 26.2 | [26.2](https://github.com/komixkat/uuidfixer/releases/tag/v26.2) |
-| 26.3 | [26.3](https://github.com/komixkat/uuidfixer/releases/tag/v26.3) |
+## What's new in 2.0.1
 
-## How it works
+- Added support for **Minecraft 26.3**.
+- The cache is now **saved on every lookup**, so verified UUIDs survive crashes and forced restarts (not just graceful `/stop`).
+- At startup, the mod **logs a clear warning** when the server runs with `online-mode=true` — in that mode the mod has no effect, since the vanilla login flow never calls offline UUID resolution.
 
-- `UUIDUtilMixin` intercepts `UUIDUtil.createOfflinePlayerUUID` and
-  substitutes the player's real UUID when one exists.
-- `UuidLookupService` queries `api.mojang.com` with a 2 second timeout. A
-  failed or slow lookup falls back to the vanilla offline UUID.
-- `UuidCache` stores results in `config/uuidfixer/cache.json` so repeat
-  joins skip the API call.
+## Compatibility
 
-## Building
+- Minecraft Java 26.3
+- Fabric Loader >= 0.19.0
+- Fabric API
+- Java 25 (build toolchain; Java 21+ at runtime)
 
-Requires JDK 25 (or whatever `java_version` is set to in `gradle.properties`).
+> **Note:** this mod only does something on servers with `online-mode=false`. Behind proxies (Velocity/BungeeCord) UUIDs are usually assigned by the proxy, so the mod must run on the proxy if needed.
 
-```
-./gradlew build
-```
+## Commands (v2.0.2)
 
-Output: `build/libs/uuidfixer-<version>.jar`
+All commands require admin permission (vanilla permission level 3+):
 
-## Releasing
+| Command | What it does |
+|---|---|
+| `/uuidfixer status` | Cache summary (entries, manual overrides, negative entries) |
+| `/uuidfixer status <username>` | How is this player currently resolved? |
+| `/uuidfixer check <username>` | Query the Mojang API now, ignoring the cache |
+| `/uuidfixer set <username> <uuid>` | **Force** username → UUID (manual override, saved to cache.json) |
+| `/uuidfixer clear <username>` | Remove the cache entry, force a re-resolve on next join |
+| `/uuidfixer reload` | Reload `config/uuidfixer/cache.json` from disk |
+| `/uuidfixer playerdata list [prefix]` | List `playerdata` files (filter by uuid or username) |
+| `/uuidfixer playerdata delete <uuid>` | Delete a stale player's `.dat`/`.json` files (⚠ back up the world first) |
 
-```
-git tag v1.0.0
-git push origin v1.0.0
-```
+Typical repair flow when a premium player got an offline UUID: run `/uuidfixer check <name>` to see what Mojang says, then `/uuidfixer set <name> <mojang-uuid>`, then delete the stale offline `.dat` with `/uuidfixer playerdata delete <offline-uuid>`, then let the player rejoin.
 
-`release.yml` builds the jar and attaches it to a GitHub Release
-automatically. Modrinth can link to `.../releases/latest`, which always
-points at the newest tag.
+The mod also **logs a clear warning** the moment a (possibly premium) player is about to be assigned an offline UUID while an existing `playerdata` file for that offline UUID already exists, with instructions on how to repair it.
 
-## Updating for a new Minecraft version
+## Usage
 
-`gradle.properties` holds every version pin. `check-mc-update.yml` runs
-daily and automatically updates to new stable releases of Minecraft, Fabric
-Loader, and Fabric API. When the build succeeds, it:
-1. Updates `gradle.properties` with new versions
-2. Updates `README.md` with the new version in the Supported Versions table
-3. Commits changes, creates a `v<version>` tag, and pushes both to main
-4. The tag triggers `release.yml` to build and publish a GitHub Release
-
-`loom_version` and the Gradle wrapper version (in
-`gradle/wrapper/gradle-wrapper.properties`) are not auto-updated. Loom's
-compatible Gradle version changes between releases and can't be verified
-without an actual build, so bump these by hand:
-
-1. Check the current stable Loom release:
-   `https://maven.fabricmc.net/net/fabricmc/fabric-loom/net.fabricmc.fabric-loom.gradle.plugin/maven-metadata.xml`
-2. Update `loom_version` in `gradle.properties`.
-3. Update the Gradle version in `gradle/wrapper/gradle-wrapper.properties`
-   to whatever that Loom release requires (check its release notes).
-4. Run `./gradlew build` locally and fix anything that breaks before pushing.
-
-If the automated build fails, the workflow opens a pull request for manual review.
+Drop `uuidfixer-2.0.1-26.3.jar` (from [releases](https://github.com/OhAleeh/uuidfixer/releases/latest)) into your `mods` folder, replacing the original. Existing `config/uuidfixer/cache.json` files are compatible; verified UUIDs persist across restarts and API outages.
 
 ## License
 
-MIT
+MIT (same as upstream).

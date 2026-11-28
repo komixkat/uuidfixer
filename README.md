@@ -23,10 +23,44 @@ This mod supports the following Minecraft versions:
 
 - `UUIDUtilMixin` intercepts `UUIDUtil.createOfflinePlayerUUID` and
   substitutes the player's real UUID when one exists.
-- `UuidLookupService` queries `api.mojang.com` with a 2 second timeout. A
-  failed or slow lookup falls back to the vanilla offline UUID.
-- `UuidCache` stores results in `config/uuidfixer/cache.json` so repeat
-  joins skip the API call.
+- `UuidLookupService` queries `api.mojang.com` with a 2 second timeout.
+  Verified results are cached for 24 hours, misses for 1 hour.
+- A temporary API failure (timeout, network error, 5xx, unusable response)
+  reuses the last verified UUID instead of assigning an offline UUID. That
+  also applies after a normal cache expiry, so a short outage cannot create
+  a duplicate player data file or an empty inventory.
+- A `404`/`204` preserves a still-valid verified UUID, since Mojang can
+  return those while rate limiting. Once a verified entry has expired, a
+  definite `404` clears it and the offline UUID is used again, so a name
+  that changes hands is not pinned to an old UUID forever.
+- `UuidCache` stores results in `config/uuidfixer/cache.json` and writes the
+  file on every cache change, so verified UUIDs survive crashes and forced
+  stops.
+- Simultaneous logins for the same name are serialized on a fixed set of
+  locks, and usernames are URL encoded before the API request is built.
+- A dedicated server running with `online-mode=true` logs a warning at
+  startup: the vanilla login flow never calls offline UUID resolution, so
+  the mod has no effect in that mode.
+
+## Admin commands
+
+All commands are server-side and require permission level 3.
+
+| Command | Effect |
+|---------|--------|
+| `/uuidfixer status` | Cache summary (total, manual, negative entries) |
+| `/uuidfixer status <name>` | Current binding and cache state for a player |
+| `/uuidfixer check <name>` | Fresh API query; leaves the cache alone on error or `404`, never overwrites a manual override |
+| `/uuidfixer set <name> <uuid>` | Force a manual UUID override, saved to disk and never expired |
+| `/uuidfixer clear <name>` | Remove a cache entry, including from disk |
+| `/uuidfixer reload` | Reload `config/uuidfixer/cache.json` from disk |
+| `/uuidfixer playerdata list [name-or-uuid]` | List player data files, optionally filtered |
+| `/uuidfixer playerdata delete <uuid> confirm` | Delete stale `.dat`/`.json` files after a confirmation prompt |
+
+To repair a premium player who got an offline UUID, use `/uuidfixer check <name>`
+to confirm the Mojang UUID, `/uuidfixer set <name> <uuid>` to pin it,
+then remove the stale offline player data file if necessary. Back up the
+world before deleting player data.
 
 ## Building
 
